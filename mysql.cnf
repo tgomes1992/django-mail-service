@@ -1,0 +1,5 @@
+[client]
+database = 'mailservice'
+user = 'root'
+password = 'taman1993**'
+default-character-set = utf8
