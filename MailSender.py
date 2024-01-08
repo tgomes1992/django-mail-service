@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import os
+from dotenv import load_dotenv
 
 class GmailFileSender:
 
@@ -12,7 +13,8 @@ class GmailFileSender:
         self.sender_password = os.environ.get("MAIL_PASSWORD")
 
     def send_email(self, to_email, subject, body, file_path):
-
+        load_dotenv()
+        print (self.sender_password)
         # Create the MIME object
         msg = MIMEMultipart()
         msg['From'] = self.sender_email
@@ -24,10 +26,11 @@ class GmailFileSender:
 
         # Attach the file
         attachment = open(file_path, 'rb')
+
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(attachment.read())
         encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename= {file_path}')
+        part.add_header('Content-Disposition', f'attachment; filename= {file_path.split("/")[-1]}')
         msg.attach(part)
 
         # Connect to Gmail SMTP server

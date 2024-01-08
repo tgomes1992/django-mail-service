@@ -1,3 +1,5 @@
+import json
+
 from django.http import JsonResponse
 from rest_framework import generics
 from rest_framework.viewsets import ViewSet
@@ -5,7 +7,8 @@ from .models import BaseEmail
 from .serializers import BaseEmailSerializer,UploadSerializer
 from rest_framework.parsers import MultiPartParser, FormParser, FileUploadParser
 from rest_framework.response import Response
-from .MailSender import GmailFileSender
+from MailSender import GmailFileSender
+from MqConfigs import RabbitMQHandler
 
 # Create your views here.
 
@@ -19,7 +22,6 @@ def enviar_email(request):
 
     for email in emails:
         try:
-            print (email.attachment)
             mailSender.send_email(email.receipts_mail,email.subject , email.body , email.attachment.path )
             email.status = True
             email.save()
@@ -27,6 +29,29 @@ def enviar_email(request):
             print (e)
             continue
     return JsonResponse({'status': 'E-mails enviados com sucesso'})
+
+
+def enviar_emails_fila(request):
+    emails = BaseEmail.objects.all()
+    rabbitSender = RabbitMQHandler("emails_a_enviar", "e_mails")
+
+    rabbitSender.connect()
+
+    for item in emails:
+        rabbitSender.publish_message(message=json.dumps(BaseEmailSerializer(item).data, indent=2))
+
+    return JsonResponse({'status': 'E-mails enviados para a Fila de processamento'})
+
+
+def get_messages_from_qeue(request):
+    rabbitSender = RabbitMQHandler("emails_a_enviar", "e_mails")
+
+    rabbitSender.connect()
+
+    messages = rabbitSender.get_queue_message_count()
+
+
+    return JsonResponse({'status': f"Pendentes de envio {messages}"})
 
 
 class BaseEmailListCreateView(generics.ListCreateAPIView):
